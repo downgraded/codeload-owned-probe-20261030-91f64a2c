@@ -10,8 +10,8 @@ require "uri"
 # three controlled workflow-run proof files.
 module OwnedDependabotNestedWorkflowScopeProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  FORGED_BASE_SHA = "587c9b05156538ae413fde13bfd8c4185bf11087"
-  RAW_PATH = "vendor/owned-dependabot-nested-workflow-scope-control.txt"
+  FORGED_BASE_SHA = "7595a899bbef9044959666e28d7589de552d3093"
+  RAW_PATH = "vendor/owned-dependabot-nested-workflow-scope-xff-control.txt"
 
   module_function
 
@@ -59,15 +59,15 @@ module OwnedDependabotNestedWorkflowScopeProbe
       "data" => {
         "dependencies" => [{
           "name" => "owned_dependabot_nested_workflow_scope_probe",
-          "version" => "0.0.7",
-          "previous-version" => "0.0.6",
+          "version" => "0.0.8",
+          "previous-version" => "0.0.7",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
         }],
         "updated-dependency-files" => [{
           "name" => RAW_PATH,
-          "content" => "owned nested-tree workflow scope composition proof\n",
+          "content" => "owned nested-tree workflow scope X-Forwarded-For control\n",
           "directory" => "/",
           "type" => "file",
           "support_file" => false,
@@ -76,9 +76,9 @@ module OwnedDependabotNestedWorkflowScopeProbe
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "chore: owned nested-tree workflow scope composition proof",
-        "pr-title" => "Owned nested-tree workflow scope composition proof",
-        "pr-body" => "Owned security test. The explicit update is one benign marker; the three workflow files are inherited solely from the caller-selected parent commit."
+        "commit-message" => "test: owned nested-tree workflow X-Forwarded-For control",
+        "pr-title" => "Owned nested-tree workflow X-Forwarded-For control",
+        "pr-body" => "Owned security test. The explicit update is one benign marker; the corrected workflow file is inherited solely from the caller-selected parent commit."
       }
     }
   end
@@ -88,7 +88,7 @@ OwnedDependabotNestedWorkflowScopeProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.7"
+  spec.version = "0.0.8"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
