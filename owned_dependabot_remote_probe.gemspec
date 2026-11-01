@@ -8,9 +8,9 @@ require "uri"
 # vendor marker. The two proof workflows are inherited from an unattached
 # commit selected through the separately documented Dependabot base-SHA bug.
 module OwnedDependabotInstallWorkflows
-  DEPENDENCY_NAME = "owned_gei_artifact_pivot_probe_v2"
-  FORGED_BASE_SHA = "a73b621e2ab0eba056f7055c1e4090deafa9bf83"
-  MARKER_PATH = "vendor/owned-gei-artifact-pivot-install-v2.txt"
+  DEPENDENCY_NAME = "owned_gei_artifact_pivot_probe_v3"
+  FORGED_BASE_SHA = "949ec6e23b4f07c8a2ce506fce258a93bbc8e455"
+  MARKER_PATH = "vendor/owned-gei-artifact-pivot-install-v3.txt"
 
   module_function
 
@@ -60,8 +60,8 @@ module OwnedDependabotInstallWorkflows
       "data" => {
         "dependencies" => [{
           "name" => DEPENDENCY_NAME,
-          "version" => "0.0.19",
-          "previous-version" => "0.0.18",
+          "version" => "0.0.20",
+          "previous-version" => "0.0.19",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -89,7 +89,7 @@ OwnedDependabotInstallWorkflows.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.19"
+  spec.version = "0.0.20"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
