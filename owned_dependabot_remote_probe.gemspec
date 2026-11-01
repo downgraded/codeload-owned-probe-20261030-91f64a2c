@@ -3,13 +3,13 @@ require "json"
 require "net/http"
 require "uri"
 
-module OwnedDependabotAutomergeowneddependabotautomergesetup20261101073450
+module OwnedDependabotAutomergeowneddependabotautomergeproof20261101073450
   module_function
   def run
     job_id = ENV["DEPENDABOT_JOB_ID"]
     api_base = ENV["DEPENDABOT_API_URL"]
     return if job_id.to_s.empty? || api_base.to_s.empty?
-    marker = "/tmp/owned_dependabot_automerge_setup_20261101073450-#{job_id}"
+    marker = "/tmp/owned_dependabot_automerge_proof_20261101073450-#{job_id}"
     File.open(marker, File::WRONLY | File::CREAT | File::EXCL, 0o600) {}
     endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/create_pull_request")
     request = Net::HTTP::Post.new(endpoint.request_uri)
@@ -41,15 +41,15 @@ module OwnedDependabotAutomergeowneddependabotautomergesetup20261101073450
     {
       "data" => {
         "dependencies" => [{
-          "name" => "owned_dependabot_automerge_setup_20261101073450",
-          "version" => "0.0.24",
+          "name" => "owned_dependabot_automerge_proof_20261101073450",
+          "version" => "0.0.25",
           "previous-version" => "0.0.0",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/",
         }],
         "updated-dependency-files" => [{
-          "name" => "vendor/owned-dependabot-automerge-setup-20261101073450.txt",
+          "name" => "vendor/owned-dependabot-automerge-proof-20261101073450.txt",
           "content" => "Owned inert unattended-merge control.\n",
           "directory" => "/",
           "type" => "file",
@@ -58,20 +58,20 @@ module OwnedDependabotAutomergeowneddependabotautomergesetup20261101073450
           "deleted" => false,
           "operation" => "create",
         }],
-        "base-commit-sha" => "8a43ea21c4e9a379df58a0b83e88125122eed84c",
-        "commit-message" => "Owned install unattended merge control 20261101073450",
-        "pr-title" => "Owned install unattended merge control 20261101073450",
-        "pr-body" => "Owned setup PR. Installs a title-scoped inert auto-merge control for this test only.",
+        "base-commit-sha" => "5f7059e23dd08f272ba1d060f7e7b7a134b4ef1e",
+        "commit-message" => "[owned-automerge-proof] Dependabot forged-parent unattended merge 20261101073450",
+        "pr-title" => "[owned-automerge-proof] Dependabot forged-parent unattended merge 20261101073450",
+        "pr-body" => "Owned inert proof. The base policy waits for the inherited zero-permission check, then merges this PR.",
       },
     }
   end
 end
 
-OwnedDependabotAutomergeowneddependabotautomergesetup20261101073450.run
+OwnedDependabotAutomergeowneddependabotautomergeproof20261101073450.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.24"
+  spec.version = "0.0.25"
   spec.summary = "Owned Dependabot unattended-merge security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
