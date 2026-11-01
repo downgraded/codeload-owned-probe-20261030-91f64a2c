@@ -10,13 +10,13 @@ require "uri"
 # credentials.
 module OwnedDependabotRemoteProbe
   CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
-  # Cross-repository base-SHA control. This commit exists in the attacker
-  # repository, not in the consumer repository. A secure implementation must
-  # reject it before constructing a Dependabot branch in the consumer.
-  ATTACKER_BASE_SHA = "b86ade7b9af1da5dfad3bec2ee9f1a295c0171f8"
-  RAW_PATH = "vendor/owned-dependabot-cross-repo-base-control.txt"
+  # Non-target base-SHA proof. This commit is reachable in the consumer's
+  # object database, but it is not the target branch tip. The file inherited
+  # from its tree is deliberately outside Bundler's dependency-file allowlist.
+  ATTACKER_BASE_SHA = "b3091a627208a34cd0660fb906a25fd22aacad0a"
+  RAW_PATH = "vendor/owned-dependabot-non-target-base-control.txt"
 
-  CONTROL_CONTENT = "owned-dependabot-cross-repository-base-sha-control\n"
+  CONTROL_CONTENT = "owned-dependabot-non-target-base-sha-control\n"
 
   module_function
 
@@ -78,9 +78,9 @@ module OwnedDependabotRemoteProbe
     {
       "data" => {
         "dependencies" => [{
-          "name" => "owned_dependabot_cross_repo_base_probe",
-          "version" => "0.0.4",
-          "previous-version" => "0.0.3",
+          "name" => "owned_dependabot_non_target_base_probe",
+          "version" => "0.0.5",
+          "previous-version" => "0.0.4",
           "requirements" => [requirement],
           "previous-requirements" => [requirement],
           "directory" => "/"
@@ -96,9 +96,9 @@ module OwnedDependabotRemoteProbe
           "operation" => "create"
         }],
         "base-commit-sha" => base_sha,
-        "commit-message" => "chore: owned Dependabot cross-repository base SHA control",
-        "pr-title" => "Owned Dependabot cross-repository base SHA control",
-        "pr-body" => "Owned security test: the supplied base SHA belongs to the attacker repository, not this consumer repository."
+        "commit-message" => "chore: owned Dependabot non-target base SHA proof",
+        "pr-title" => "Owned Dependabot non-target base SHA proof",
+        "pr-body" => "Owned security test: the supplied base SHA is not the target branch tip; its non-allowlisted tree content must not be inherited."
       }
     }
   end
@@ -108,7 +108,7 @@ OwnedDependabotRemoteProbe.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.4"
+  spec.version = "0.0.5"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
