@@ -1,0 +1,5 @@
+root = true
+[{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}{a,aa}b]
+indent_size = 7
+[*]
+tab_width = 11
