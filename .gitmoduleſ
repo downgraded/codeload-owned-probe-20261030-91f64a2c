@@ -1,0 +1,3 @@
+[submodule "owned-probe"]
+  path = vendor/owned-probe
+  url = https://github.com/downgraded/codeload-owned-probe-20261030-91f64a2c.git
