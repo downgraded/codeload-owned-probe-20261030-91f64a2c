@@ -1,0 +1,1 @@
+	owned bounded editorconfig probe 20261106010334-8604e6bf
